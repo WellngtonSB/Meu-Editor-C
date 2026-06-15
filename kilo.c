@@ -4,6 +4,7 @@
 #include <termios.h>
 #include <stdlib.h>
 #include <errno.h>
+#define CTRL_KEY(k) ((k) & 0x1f)
 
 
 struct termios orig_termios;
@@ -18,11 +19,11 @@ void disableRawMode(){
     die("tcsetattr");
 }
 void enableRawMode(){
-    
+
     if(tcgetattr(STDIN_FILENO, &orig_termios)== -1)
     die("tcgetattr");
     atexit (disableRawMode);
-    
+
     struct termios raw = orig_termios;
     raw.c_oflag &= ~(OPOST);
     raw.c_iflag &= ~(IXON | BRKINT | INPCK | ISTRIP);
@@ -41,7 +42,7 @@ char editorReadKey(){
 }
 void editorProcessKeypress(){
     char c = editorReadKey();
-    if (c == 'q')
+    if (c == CTRL_KEY ('q'))
     exit(0);
 
 }
