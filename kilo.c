@@ -6,11 +6,11 @@
 #include <errno.h>
 #define CTRL_KEY(k) ((k) & 0x1f)
 
-
 struct termios orig_termios;
 
-
 void die( const char *s){
+    write (STDOUT_FILENO, "\x1b[2J" , 4 );
+    write (STDOUT_FILENO, "\x1b[H", 3);
     perror(s);
     exit(1);
 }
@@ -44,12 +44,24 @@ void editorProcessKeypress(){
     char c = editorReadKey();
     if (c == CTRL_KEY ('q'))
     exit(0);
-
+}
+void editorDrawRows(){
+    int i;
+    for (i = 0; i < 24; ++i){
+    write(STDOUT_FILENO, "~", 1);
+    write (STDOUT_FILENO, "\r\n", 3);
+    }
+}
+void editorRefreshScreen(){
+    write (STDOUT_FILENO, "\x1b[2J" , 4 );
+    write (STDOUT_FILENO, "\x1b[H", 3);
+    editorDrawRows();
 }
 int main (){
     enableRawMode();
 
     while(1){
+        editorRefreshScreen();
         editorProcessKeypress();
     }
     return 0;
