@@ -1,4 +1,4 @@
-readme_content = """# Meu Editor de Texto em C (Kilo Clone) 🚀
+              ## Meu Editor de Texto em C (Kilo Clone) 🚀
 
 Este projeto é um esforço dedicado ao estudo prático de engenharia de software de baixo nível, sistemas operacionais e programação na linguagem C. O objetivo principal é construir um editor de texto totalmente funcional diretamente para o terminal Linux do zero, sem o uso de bibliotecas externas complexas, baseando-se no famoso editor `kilo` criado por Salvatore Sanfilippo (antirez).
 
