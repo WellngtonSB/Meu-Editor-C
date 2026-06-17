@@ -4,8 +4,15 @@
 #include <termios.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <sys/ioctl.h>
+
 #define CTRL_KEY(k) ((k) & 0x1f)
 
+struct editorConfig {
+int screenrows;
+int screencols;
+};
+struct editorConfig E;
 struct termios orig_termios;
 
 void die( const char *s){
@@ -47,17 +54,35 @@ void editorProcessKeypress(){
 }
 void editorDrawRows(){
     int i;
-    for (i = 0; i < 24; ++i){
-    write(STDOUT_FILENO, "~", 1);
-    write (STDOUT_FILENO, "\r\n", 3);
+    for (i = 0; i < E.screenrows; i++){
+    write (STDOUT_FILENO, "~", 1);
+
+    if(i < E.screenrows - 1)
+    write (STDOUT_FILENO, "\r\n", 2);
     }
 }
+
 void editorRefreshScreen(){
     write (STDOUT_FILENO, "\x1b[2J" , 4 );
     write (STDOUT_FILENO, "\x1b[H", 3);
     editorDrawRows();
 }
+int getWindowSize(int *rows, int *cols){
+    struct winsize ws;
+    if (ioctl (STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0){
+    return -1;
+    }else{
+     *rows = ws.ws_row;
+     *cols = ws.ws_col;
+    return 0;
+    }
+}
+void initEditor(){
+     if (getWindowSize(&E.screenrows, &E.screencols ) == -1)
+    die ("getWindowSize");
+}
 int main (){
+    initEditor();
     enableRawMode();
 
     while(1){
