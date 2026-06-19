@@ -67,18 +67,42 @@ void editorRefreshScreen(){
     write (STDOUT_FILENO, "\x1b[H", 3);
     editorDrawRows();
 }
+int getCursorPosition(int *rows, int *cols){
+    char buff[32];
+    unsigned int i = 0;
+    while(i < sizeof(buff) - 1 ){
+    buff[i] = editorReadKey();
+    i++;
+    if(buff[i-1] == 'R'){
+        break;
+        }
+    }
+    buff[i] = '\0';
+    if (buff[0] != '\x1b' || buff[1] != '[') return -1;
+        if(sscanf( &buff[2],"%d;%d", rows, cols) != 2){
+        return -1;
+      }
+      return 0;
+}
 int getWindowSize(int *rows, int *cols){
     struct winsize ws;
-    if (ioctl (STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0){
-    return -1;
+    if(ioctl (STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0){
+    write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12);
+    write(STDOUT_FILENO, "\x1b[6n", 4);
+    if(getCursorPosition(rows, cols) == -1){
+        *rows = 24;
+        *cols = 80;
+    return 0;
+        }
     }else{
-     *rows = ws.ws_row;
-     *cols = ws.ws_col;
+    *rows = ws.ws_row;
+    *cols = ws.ws_col;
     return 0;
     }
-}
+    return 0;
+  }
 void initEditor(){
-     if (getWindowSize(&E.screenrows, &E.screencols ) == -1)
+     if(getWindowSize(&E.screenrows, &E.screencols ) == -1)
     die ("getWindowSize");
 }
 int main (){
