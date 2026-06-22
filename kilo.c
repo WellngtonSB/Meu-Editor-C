@@ -5,16 +5,29 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/ioctl.h>
+#include <string.h>
 
 #define CTRL_KEY(k) ((k) & 0x1f)
+#define ABUF_INIT { NULL, 0}
 
-struct editorConfig {
-int screenrows;
-int screencols;
-};
+struct editorConfig { int screenrows; int screencols; };
 struct editorConfig E;
 struct termios orig_termios;
+struct abuf { char *b; int len; };
 
+void abAppend (struct abuf *ab, const char *s, int len){
+    char *new = realloc(ab->b, ab->len + len);
+    if(new == NULL)
+    return;
+    memcpy(&new[ab ->len], s, len);
+    ab->b = new;
+    ab->len += len;
+}
+ void abFree (struct abuf *ab){
+    free(ab->b);
+    ab->b = NULL;
+    ab->len = 0;
+ }
 void die( const char *s){
     write (STDOUT_FILENO, "\x1b[2J" , 4 );
     write (STDOUT_FILENO, "\x1b[H", 3);
@@ -26,7 +39,6 @@ void disableRawMode(){
     die("tcsetattr");
 }
 void enableRawMode(){
-
     if(tcgetattr(STDIN_FILENO, &orig_termios)== -1)
     die("tcgetattr");
     atexit (disableRawMode);
@@ -61,11 +73,11 @@ void editorDrawRows(){
     write (STDOUT_FILENO, "\r\n", 2);
     }
 }
-
 void editorRefreshScreen(){
     write (STDOUT_FILENO, "\x1b[2J" , 4 );
     write (STDOUT_FILENO, "\x1b[H", 3);
     editorDrawRows();
+
 }
 int getCursorPosition(int *rows, int *cols){
     char buff[32];
