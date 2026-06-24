@@ -64,20 +64,40 @@ void editorProcessKeypress(){
     if (c == CTRL_KEY ('q'))
     exit(0);
 }
-void editorDrawRows(){
+void editorDrawRows(struct abuf *ab){
     int i;
+    char welcome[] = "*** Well Editor V1.0 ***";
+    int num = strlen (welcome);
+    if(num > E.screencols){
+                num = E.screencols;
+    }
     for (i = 0; i < E.screenrows; i++){
-    write (STDOUT_FILENO, "~", 1);
-
-    if(i < E.screenrows - 1)
-    write (STDOUT_FILENO, "\r\n", 2);
+        abAppend(ab, "\x1b[K", 3);
+            if(i == E.screenrows / 3){
+                int padding = (E.screencols - num) /2;
+                if(padding > 0){
+                abAppend(ab, "~", 1);
+                padding -= 1;
+            }
+    while(padding > 0 ){
+        abAppend(ab, " ", 1);
+        padding -= 1;
+    }
+        abAppend(ab, welcome, num);
+            }else{
+                abAppend(ab, "~", 1);
+            }
+        if(i < E.screenrows - 1)
+        abAppend(ab, "\r\n", 2);
     }
 }
 void editorRefreshScreen(){
-    write (STDOUT_FILENO, "\x1b[2J" , 4 );
-    write (STDOUT_FILENO, "\x1b[H", 3);
-    editorDrawRows();
+    struct abuf ab = ABUF_INIT;
 
+    editorDrawRows(&ab);
+    abAppend(&ab,"\x1b[H", 3 );
+    write(STDOUT_FILENO, ab.b, ab.len);
+    abFree(&ab);
 }
 int getCursorPosition(int *rows, int *cols){
     char buff[32];
@@ -104,8 +124,9 @@ int getWindowSize(int *rows, int *cols){
     if(getCursorPosition(rows, cols) == -1){
         *rows = 24;
         *cols = 80;
-    return 0;
         }
+        return 0;
+
     }else{
     *rows = ws.ws_row;
     *cols = ws.ws_col;
