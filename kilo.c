@@ -10,6 +10,15 @@
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define ABUF_INIT { NULL, 0}
 
+enum editorKey{
+    ARROW_LEFT = 1000,
+    ARROW_RIGHT,
+    ARROW_UP,
+    ARROW_DOWN,
+    PAGE_UP,
+    PAGE_DOWN,
+};
+
 struct editorConfig { int screenrows; int screencols; int cx; int cy; };
 struct editorConfig E;
 struct termios orig_termios;
@@ -51,26 +60,82 @@ void enableRawMode(){
     raw.c_cc [VTIME] = 1;
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
-char editorReadKey(){
+int editorReadKey(){
     int nread;
-    char c;
-    while((nread = read(STDIN_FILENO, &c, 1)) !=1) {
+    char c; char seq[2];
+    while((nread = read(STDIN_FILENO, &c, 1)) !=1){
     if(nread == -1 && errno != EAGAIN) die("Read");
+    }
+    if(c =='\x1b'){
+            read(STDIN_FILENO, &seq[0], 1);
+            read(STDIN_FILENO, &seq[1], 1);
+        if(seq[0] == '['){
+        switch(seq[1]){
+            char trash;
+            case 'A':
+                return ARROW_UP;
+            break;
+            case 'B':
+                return ARROW_DOWN;
+            break;
+            case 'C':
+                return ARROW_RIGHT;
+            break;
+            case 'D':
+                return ARROW_LEFT;
+            break;
+            case '5':
+                read(STDIN_FILENO, &trash, 1);
+                return PAGE_UP;
+            break;
+            case '6':
+                read(STDIN_FILENO, &trash, 1);
+                return PAGE_DOWN;
+            break;
+            }
+        }
+        return '\x1b';
     }
     return c ;
 }
+void editorMoveCursor(int key){
+switch(key){
+    case 'a':
+        E.cx--;
+    break;
+    case 'd':
+        E.cx++;
+    break;
+    case 'w':
+        E.cy--;
+    break;
+    case 's':
+        E.cy++;
+    break;
+    }
+}
 void editorProcessKeypress(){
-    char c = editorReadKey();
+    int c = editorReadKey();
     switch(c){
         case CTRL_KEY('q'):
             exit(0);
+        break;
+        case PAGE_UP:
+        for (int count = 0; count < E.screenrows; count++){
+        editorMoveCursor(ARROW_UP);
+        }
+        break;
+        case PAGE_DOWN:
+        for(int count = 0; count < E.screenrows; count++){
+            editorMoveCursor(ARROW_DOWN);
+        }
         break;
 
         default:
             editorMoveCursor(c);
         break;
     }
-}
+  }
 void editorDrawRows(struct abuf *ab){
     int i;
     char welcome[] = "*** Well Editor V1.0 ***";
@@ -98,22 +163,6 @@ void editorDrawRows(struct abuf *ab){
         abAppend(ab, "\r\n", 2);
     }
 }
-void editorMoveCursor(int key){
-switch(key){
-    case 'a':
-        E.cx--;
-    break;
-    case 'd':
-        E.cx++;
-    break;
-    case 'w':
-        E.cy--;
-    break;
-    case 's':
-        E.cy++;
-    break;
-    }
-}
 void editorRefreshScreen(){
     char buff[32];
     struct abuf ab = ABUF_INIT;
@@ -122,7 +171,6 @@ void editorRefreshScreen(){
     abAppend(&ab, buff, strlen(buff));
     write(STDOUT_FILENO, ab.b, ab.len);
     abFree(&ab);
-
 }
 int getCursorPosition(int *rows, int *cols){
     char buff[32];
@@ -151,7 +199,6 @@ int getWindowSize(int *rows, int *cols){
         *cols = 80;
         }
         return 0;
-
     }else{
     *rows = ws.ws_row;
     *cols = ws.ws_col;
@@ -168,7 +215,6 @@ void initEditor(){
 int main (){
     initEditor();
     enableRawMode();
-
     while(1){
         editorRefreshScreen();
         editorProcessKeypress();
