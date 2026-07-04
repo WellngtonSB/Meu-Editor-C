@@ -17,6 +17,8 @@ enum editorKey{
     ARROW_DOWN,
     PAGE_UP,
     PAGE_DOWN,
+    HOME_KEY,
+    END_KEY,
 };
 
 struct editorConfig { int screenrows; int screencols; int cx; int cy; };
@@ -92,6 +94,14 @@ int editorReadKey(){
                 read(STDIN_FILENO, &trash, 1);
                 return PAGE_DOWN;
             break;
+            case 'H':
+                read(STDIN_FILENO, &trash, 1);
+                return HOME_KEY;
+            break;
+            case 'F':
+                read(STDIN_FILENO, &trash, 1);
+                return END_KEY;
+            break;
             }
         }
         return '\x1b';
@@ -100,17 +110,25 @@ int editorReadKey(){
 }
 void editorMoveCursor(int key){
 switch(key){
-    case 'a':
+    case ARROW_LEFT:
+        if(E.cx != 0){
         E.cx--;
+        }
     break;
-    case 'd':
+    case ARROW_RIGHT:
+        if(E.cx < E.screencols - 1){
         E.cx++;
+        }
     break;
-    case 'w':
+    case ARROW_UP:
+        if(E.cy != 0){
         E.cy--;
+        }
     break;
-    case 's':
-        E.cy++;
+    case ARROW_DOWN:
+        if(E.cy < E.screenrows - 1 ){
+         E.cy++;
+        }
     break;
     }
 }
@@ -130,7 +148,12 @@ void editorProcessKeypress(){
             editorMoveCursor(ARROW_DOWN);
         }
         break;
-
+        case HOME_KEY:
+            E.cx = 0;
+        break;
+        case END_KEY:
+            E.cx = E.screencols - 1;
+        break;
         default:
             editorMoveCursor(c);
         break;
@@ -138,7 +161,7 @@ void editorProcessKeypress(){
   }
 void editorDrawRows(struct abuf *ab){
     int i;
-    char welcome[] = "*** Well Editor V1.0 ***";
+    char welcome[] = "---My Editor V1.0---";
     int num = strlen (welcome);
     if(num > E.screencols){
                 num = E.screencols;
@@ -192,8 +215,8 @@ int getCursorPosition(int *rows, int *cols){
 int getWindowSize(int *rows, int *cols){
     struct winsize ws;
     if(ioctl (STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0){
-    write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12);
-    write(STDOUT_FILENO, "\x1b[6n", 4);
+        write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12);
+        write(STDOUT_FILENO, "\x1b[6n", 4);
     if(getCursorPosition(rows, cols) == -1){
         *rows = 24;
         *cols = 80;
