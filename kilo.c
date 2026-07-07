@@ -1,3 +1,4 @@
+#define _DEFAULT_SOURCE
 #include <ctype.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -21,7 +22,11 @@ enum editorKey{
     END_KEY,
 };
 
-struct editorConfig { int screenrows; int screencols; int cx; int cy; };
+typedef struct {int size; char *chars;} erow;
+
+struct editorConfig { int screenrows; int screencols;
+int cx; int cy; int numrows; erow *row;};
+
 struct editorConfig E;
 struct termios orig_termios;
 struct abuf { char *b; int len; };
@@ -232,11 +237,34 @@ int getWindowSize(int *rows, int *cols){
 void initEditor(){
     E.cx = 0;
     E.cy = 0;
-     if(getWindowSize( &E.screenrows, &E.screencols ) == -1)
+    E.numrows = 0;
+    if(getWindowSize( &E.screenrows, &E.screencols ) == -1)
     die ("getWindowSize");
 }
-int main (){
+void editorOpen(const char *filename){
+FILE *fp = fopen(filename, "r");
+    if(fp==NULL){
+    die("fopen");
+    }
+    // variaveis de controle
+    char *line = NULL; size_t linecap = 0; ssize_t linelen;
+    linelen = getline(&line, &linecap, fp);
+        if(linelen != -1){
+            if(line[linelen - 1] == '\n' || line[linelen - 1] =='\r'){
+                linelen--;
+            }
+        }
+    fclose(fp);
+    //E.row[0].size = linelen;
+    //E.row[0].chars = line;
+    //E.numrows = 1;
+}
+
+int main (int argc, char *argv[]){
     initEditor();
+    if (argc >= 2){
+        editorOpen(argv[1]);
+    }
     enableRawMode();
     while(1){
         editorRefreshScreen();
