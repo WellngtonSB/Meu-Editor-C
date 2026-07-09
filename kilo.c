@@ -171,21 +171,29 @@ void editorDrawRows(struct abuf *ab){
     if(num > E.screencols){
                 num = E.screencols;
     }
-    for (i = 0; i < E.screenrows; i++){
+    for(i = 0; i < E.screenrows; i++){
         abAppend(ab, "\x1b[K", 3);
             if(i == E.screenrows / 3){
                 int padding = (E.screencols - num) /2;
                 if(padding > 0){
                 abAppend(ab, "~", 1);
                 padding -= 1;
-            }
+                }
     while(padding > 0 ){
         abAppend(ab, " ", 1);
         padding -= 1;
-    }
+        }
         abAppend(ab, welcome, num);
             }else{
+                if(i >= E.numrows){
                 abAppend(ab, "~", 1);
+                }else{
+                    int len = E.row[i].size;
+                    if(E.row[i].size > E.screencols){
+                    len = E.screencols;
+                    }
+                    abAppend(ab, E.row[i].chars, len);
+                }
             }
         if(i < E.screenrows - 1)
         abAppend(ab, "\r\n", 2);
@@ -241,23 +249,33 @@ void initEditor(){
     if(getWindowSize( &E.screenrows, &E.screencols ) == -1)
     die ("getWindowSize");
 }
+void editorAppendRow( char *s, size_t len){
+    E.row =  realloc(E.row, (E.numrows + 1) * sizeof(erow));
+    E.row[E.numrows].size = len;
+    E.row[E.numrows].chars = malloc(len + 1);
+    memcpy(E.row[E.numrows].chars, s, len);
+    E.row[E.numrows].chars[len] = '\0';
+    E.numrows++;
+
+}
 void editorOpen(const char *filename){
-FILE *fp = fopen(filename, "r");
+    FILE *fp = fopen(filename, "r");
     if(fp==NULL){
     die("fopen");
     }
     // variaveis de controle
     char *line = NULL; size_t linecap = 0; ssize_t linelen;
-    linelen = getline(&line, &linecap, fp);
-        if(linelen != -1){
+     linelen = getline(&line, &linecap, fp);
+        while(linelen != -1){
             if(line[linelen - 1] == '\n' || line[linelen - 1] =='\r'){
                 linelen--;
+
             }
+            editorAppendRow(line, linelen);
+            linelen = getline(&line, &linecap, fp);
         }
-    fclose(fp);
-    //E.row[0].size = linelen;
-    //E.row[0].chars = line;
-    //E.numrows = 1;
+        free(line);
+        fclose(fp);
 }
 
 int main (int argc, char *argv[]){
